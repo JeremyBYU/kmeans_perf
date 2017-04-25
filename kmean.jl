@@ -7,27 +7,25 @@ end
 
 function update_groups!(k_groups, img_data, means)
     for iter in eachindex(img_data)
-        distance = norm.(means .- img_data[iter])
+        local distance = norm.(means .- img_data[iter])
         _, idx = findmin(distance)
         k_groups[iter] = idx
     end
-    return k_groups
 end
 
-function update_means!(means, img_data, k_groups, k_num)
+function update_means!(means, img_data, k_groups, k_num::Int64)
     # means = Array(RGB{Float64}, k_num)
     for i = 1:k_num
         mask = k_groups .== i
         pixels = img_data[mask]
         means[i] = mean(pixels)
     end
-    return means
 end
 
 function k_means(img_data, k_num)
-    prev_means = initial_means(img_data, k_num)
+    means = initial_means(img_data, k_num)
     k_groups = Array(Int64, (size(img_data, 1), size(img_data,2)))
-    k_groups = update_groups!(k_groups, img_data, prev_means)
+    update_groups!(k_groups, img_data, means)
     loop_num = 0
     while true && loop_num < 500
         update_means!(means, img_data, k_groups, k_num)
@@ -49,17 +47,27 @@ end
 
 
 srand(1234)
-k = 16
+const k= 16  # How many clusters in k-means
 
-img = load("mandrill-small.tiff")
-img2 = load("mandrill-large.tiff")
-img = float64.(img)  # convert to float 64
-img2 = float64.(img2)
+# Load Images, Small Mandrill and large Mandrill
+img1_ = load("mandrill-small.tiff")
+img2_ = load("mandrill-large.tiff")
+# Convert the images to float values and assign with const
+const img = float64.(img1_)  # convert to float 64
+const img2 = float64.(img2_)
 
 # Perform K Means
 means = k_means(img, k)
 
-groups = assign_groups(img2, means)
-
+# Use the Means to compress the larger madrill picture
+groups = Array(Int64, (size(img2, 1), size(img2,2)))
+update_groups!(groups, img2, means)
 reduce_image!(img2, means, groups, k)
 save("test.tiff", img2)
+
+
+
+
+k_groups = Array(Int64, (size(img, 1), size(img,2)))
+update_groups!(k_groups, img, means)
+@time update_means!(means, img, k_groups, k)
