@@ -11,10 +11,16 @@ IMG_TRAIN = 'mandrill-small.tiff'
 IMG_FROM = 'mandrill-large.tiff'
 IMG_TO = 'mandrill-large-reduced-python.tiff'
 
-
 def write_img(img_data, name):
     """ Helper function to write image data"""
     cv2.imwrite(name, np.rint(img_data).astype('uint8'))
+
+def reduce_img(means, k_groups, img_data):
+    k_num = means.shape[0]
+    for i in range(k_num):
+        mask = k_groups == i        # boolean mask where only pixels belonging to color group
+        img_data[mask] = means[i]
+    return img_data
 
 def initial_groups(img_data, k_num):
     """ Simple initialization of color groups from random pixels"""
@@ -31,7 +37,6 @@ def initial_groups(img_data, k_num):
 
 def k_means(img_data, k_num=16, order=2):
     """ Performs K-means clustering"""
-
     means = initial_groups(img_data, k_num)
     rows = img_data.shape[0]
     cols = img_data.shape[1]
@@ -69,13 +74,6 @@ def gen_means(means, img_data, k_groups, k_num):
         # pixels = img_data[np.where(k_groups == i)]     # retruns only the pixels
         # means[i] = np.mean(pixels, axis=0)  # Gets the mean of the pixels colors
 
-
-def reduce_img(means, k_groups, img_data):
-    k_num = means.shape[0]
-    for i in range(k_num):
-        mask = k_groups == i        # boolean mask where only pixels belonging to color group
-        img_data[mask] = means[i]
-    return img_data
 @jit(nopython=True)
 def assign_groups(k_groups, img_data, means, k_num):
     rows = img_data.shape[0]
