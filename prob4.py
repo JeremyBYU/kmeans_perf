@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from itertools import izip, count
 import time
+from numba import jit # Testing Optimization with Numba
 
 
 IMG_TRAIN = 'mandrill-small.tiff'
@@ -40,7 +41,7 @@ def k_means(img_data, k_num=16, order=2):
     loop_num = 0
 
     while loop_num < 5:
-        means = gen_means(means, img_data, k_groups, k_num)
+        gen_means(means, img_data, k_groups, k_num)
         k_groups = assign_groups(k_groups, img_data, means, k_num)
 
         loop_num += 1
@@ -48,13 +49,13 @@ def k_means(img_data, k_num=16, order=2):
         # print(means)
     return (means, k_groups)
 
+@jit
 def gen_means(means, img_data, k_groups, k_num):
     # means = np.zeros((k_num, 3))
     for i in range(k_num):
         mask = k_groups == i        # boolean mask where only pixels belonging to color group
         pixels = img_data[mask]     # retruns only the pixels
         means[i] = np.mean(pixels, axis=0)  # Gets the mean of the pixels colors
-    return means
 
 
 def reduce_img(means, k_groups, img_data):
@@ -63,7 +64,7 @@ def reduce_img(means, k_groups, img_data):
         mask = k_groups == i        # boolean mask where only pixels belonging to color group
         img_data[mask] = means[i]
     return img_data
-
+@jit
 def assign_groups(k_groups, img_data, means, k_num):
     rows = img_data.shape[0]
     cols = img_data.shape[1]
@@ -98,13 +99,15 @@ def main():
     (means, _) = k_means(img_train)
     print('Finished. Elapsed Time: {:.2f}'.format(time.time() - start_time))
     # Read in larger image we wish to compress
-    print('Compressing Larger Image...')
-    img_from = cv2.imread(IMG_FROM).astype('float64')
-    # Use previously found means to assign groups for this image
-    img_groups = assign_groups(np.zeros((img_from.shape[0], img_from.shape[1])), img_from, means, k_num)
-    # Reduce Image by replacing every pixel in the group with its mean
-    reduced_image = reduce_img(means, img_groups, img_from)
-    write_img(reduced_image, IMG_TO)
+    # print('Compressing Larger Image...')
+    # img_from = cv2.imread(IMG_FROM).astype('float64')
+    # # Use previously found means to assign groups for this image
+    # img_groups = assign_groups(np.zeros((img_from.shape[0], img_from.shape[1])), img_from, means, k_num)
+    # # Reduce Image by replacing every pixel in the group with its mean
+    # reduced_image = reduce_img(means, img_groups, img_from)
+    # write_img(reduced_image, IMG_TO)
+
+
     # print('Final Color Group Means: ')
     # print(means)
 
